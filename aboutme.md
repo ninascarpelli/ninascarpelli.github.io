@@ -11,4 +11,4 @@ After the master's I moved to Australia [Brisbane, Queensland](https://goo.gl/ma
 
 The goal of this blog is for me to learn and improve my Markdown and git skills as a part of a casual job but I thought to make the most out of it and try to **finally** make my stuff more available and user-friendly. I hope someone finds this useful. Any questions, suggestions etc, you can find me on [Research Gate](https://www.researchgate.net/profile/Marina-Scarpelli), [GitHub](https://github.com/ninascarpelli) and recently [Twitter](https://twitter.com/scarpellinina) - must say I'm not very active on that one to be honest.
 
-Ah, by the way, my name is Marina, but I'll go as Nina.
+Ah, by the way, my name is Marina, but I usually go as Nina.
