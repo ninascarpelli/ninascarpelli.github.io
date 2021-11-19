@@ -1,4 +1,9 @@
-#Motif analysis step 1: This script runs the motif analysis up to wavelet transformation with images and .wav files for labelling the motifs. It also gives the samples to be labelled (30% of dataset as per Scarpelli et al.). The second step is the file named 2_.... and it performs the random forest classification. The second step should be run after at least 10% of motifs is labelled
+#Motif analysis step 1
+
+This script runs the motif analysis up to wavelet transformation with images and a way to check files for labelling the motifs. It also gives the samples to be labelled (30% of dataset as per Scarpelli et al.). The second step is the file named 2_.... and it performs the random forest classification. The second step should be run after at least 10% of motifs is labelled
+
+So, first here are the packages we will need for the analysis
+```
 
 library(tidyverse)
 library(ggplot2)
@@ -9,11 +14,17 @@ library(magick)
 
 rm(list = ls())
 
-#Functions ----
+```
+
+
+I have created some functions to make life easier when tasks are repetitive
+
+First function is ```GetDataPath``` which should be where your files are so you don't have to put the full path all the time.
 
 getDataPath <- function (...) {
   return(file.path("C:",  ...))
 }
+
 
 list_myfiles <- function(step = NULL, search_pattern) {
   if (is.null(step)) {
