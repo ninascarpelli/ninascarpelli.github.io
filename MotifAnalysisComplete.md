@@ -1,6 +1,13 @@
-#Motif analysis step 1
+layout: page
+title: "Motif Analysis for Ecoacoustics"
+permalink: https://ninascarpelli.github.io/motifanalysis
 
-This script runs the motif analysis up to wavelet transformation with images and a way to check files for labelling the motifs. It also gives the samples to be labelled (30% of dataset as per Scarpelli et al.). The second step is the file named 2_.... and it performs the random forest classification. The second step should be run after at least 10% of motifs is labelled
+
+# Motif Analysis for Ecoacoustics
+
+The analysis developed here were motivated by the need of having a way to analyse multiple acoustic indices statistically. Currently, we have great visualisation tools but the step between those and the actual stats for ecological assessment was missing. The analysis showing here was accepted for publication and I will update the DOI and information on the paper as soon as I have them.
+
+This code runs the motif analysis up to wavelet transformation with images and a way to check files for labelling the motifs. It also gives the samples to be labelled (30% of dataset). The second step is the file named 2_.... (Haven't done this yet whoops) and it performs the random forest classification. The second step should be run after at least 10% of motifs is labelled - ideally 30%.
 
 So, first here are the packages we will need for the analysis
 ```
@@ -11,21 +18,29 @@ library(wavelets)
 library(dtwclust)
 library(randomForest)
 library(magick)
+library(rJava)
+```
 
+Removing all the previous objects stored
+```
 rm(list = ls())
 
 ```
 
 
-I have created some functions to make life easier when tasks are repetitive
+and some functions to make life easier when tasks are repetitive
 
-First function is ```GetDataPath``` which should be where your files are so you don't have to put the full path all the time.
+1. First function is ```getDataPath``` that wasn't me who did it. This is so we can have the path to the parent folder that we will be working on without having to type the full path all the time. Best practice, according to Anthony (who is always trying to make me learn them) is to have absolute paths whenever possible. Also, create functions whenevee you have to copy and paste lines of code more than... 3 times?
 
+```
 getDataPath <- function (...) {
   return(file.path("C:",  ...))
 }
+```
 
+2. ```list_myfiles``` is going to list all the files in one folder because most times we will be using for loops and doing the same task in different files.
 
+```
 list_myfiles <- function(step = NULL, search_pattern) {
   if (is.null(step)) {
     list.files(
@@ -45,11 +60,16 @@ list_myfiles <- function(step = NULL, search_pattern) {
   }
   
 }
-
+```
+3. ```create_mydir``` will create a directory inside the parent folder so we can store results
+```
 create_mydir <- function(current_step) {
   dir.create(getDataPath(folder, current_step))
 }
+```
+4. ```ordering_files``` will be needed in step 2 when we build the time-series, i.e. putting files in order.
 
+```
 ordering_files <-
   function(original_dataframe,
            index_name) {
@@ -89,12 +109,17 @@ ordering_files <-
     }
     
   }
+```
+4. ```HIME``` calls the HIME algorithm in powershell. This can be done separately by openning Powershell and running the command directly, I just put it here so it is easier for people without familiarity with Powershell.
 
+```
 HIME <- function(command) {
   system2('powershell', command)
 }
+```
+5. This might be the most complicated function here, but nothing to worry about. ```iteration1``` will be used when cleaning up the motifs seeing there are lots of repetition. Again, the authors of the paper that did the algorithm and everything propose a different solution to cleaning them up, but this was the way I found to make it easier and straightforward when dealing with heaps of data as I was. This function is assigning the word "repeated" to motifs that overlap. 
 
-
+```
 iteration1 <- function(motif_results_df) {
   for (row in 1:nrow(motif_results_df)) {
     motif_results_df$overlap[row] = case_when(
@@ -120,7 +145,9 @@ iteration1 <- function(motif_results_df) {
   }
   motif_results_df <- motif_results_df
 }
-
+```
+6. Now this function actually cleans up the motifs. ```remove_repeated``` runs the iteration 3 times so it removes all the possible repetitions and overlaps and remove motifs assigned as repeated.
+```
 remove_repeated <- function(motif_results_df) {
   result <- iteration1(motif_results_df) %>%
     filter(., .$overlap != "repeated") %>%
@@ -133,13 +160,21 @@ remove_repeated <- function(motif_results_df) {
     with(., .[order(Start), ])
   
 }
-
+```
+## Some more housekeeping before we start
+Firstly name the parent folder where you have your indices and where we will be creating new folders to save our results
+```
 folder <- "AIndices"
+```
 
-#Steps and folders ----
-#it is good to have the intermediate steps saved so if something goes wrong you can fix it from where it stopped and doesn't have to run everything again.
-#The file structure is quite important bacause the way it is saved to avoid confusion. Therefore, files should be in a folder witn the site name, inside this folder should be the ones with the point names and then the files to be processed inside - following the pattern in the AP.exe output.
+### Steps and folders
+It is good to have the intermediate steps saved so if something goes wrong you can fix it from where it stopped and doesn't have to run everything again.
+The file structure is quite important bacause the way it is saved to avoid confusion. Therefore, files should be in a folder witn the site name, inside this folder should be the ones with the point names and then the files to be processed inside - following the pattern in the AP.exe output.
 
+This analysis is made of 9 steps. Again, maybe that is not the best way of doing it, but this was the way I found best to have intermediate steps saved to be able to double check them. Also, the steps make sense in my head so it makes it straightforward to me. Maybe won't be the same for everyone so just change it however you think it is best for you.
+
+The steps are:
+```
 step1 <- "1_IndicesToTs"
 step2 <- "2_MonthlyAI"
 step3 <- "3_HIME"
@@ -148,8 +183,10 @@ step5 <- "5_CleaningUp"
 step6 <- "6_CompleteMotif"
 step7 <- "7_CropSpectrogram"
 step8 <- "8_FeatureExtraction"
-step9 <- "9_SpectroSelected"
+```
 
+And then we create directories for all those steps
+```
 create_mydir(step1)
 create_mydir(step2)
 create_mydir(step3)
@@ -158,18 +195,24 @@ create_mydir(step5)
 create_mydir(step6)
 create_mydir(step7)
 create_mydir(step8)
-create_mydir(step9)
 create_mydir("Figures")
+```
 
-#step1: 1_IndicesToTs----
+## Nice, we are finally ready to start
+### Step 1: ```1_IndicesToTs```
+Here we will ordenate the indices minutes as a time-series
 
+Listing the files in the directory:
+```
 files <- list_myfiles(search_pattern = ".Indices.csv")
+```
 
-####Creating dirs and building TS 
-#First create and unique identifier to each minute using the file name - which ideally has date and time embedded - and then scale the indices values - if necessary adjust the columns in line 15 - scale only columns with indices
+Creating dirs and building TS 
+First create and unique identifier to each minute using the file name - which ideally has date and time embedded - and then scale the indices values - if necessary adjust the columns in line 15 - scale only columns with indices
 
-#This one create one file with all the 3 indices + all variables needed for subsequence analysis. It also saves the sites, points and date_time attributes so we use it in the next step
+This create one file with all the 3 indices (we will use the FCS ones) + all variables needed for subsequence analysis. It also saves the sites, points and date_time attributes so we use it in the next step
 
+```
 site_id <- NULL
 point_id <- NULL
 date_time_id <- NULL
@@ -256,10 +299,14 @@ for (file in files) {
                              paste(t[[1]][3], "_", t[[1]][4], "_", u[[1]][1], ".csv", sep = "")), row.names = F)
 }
 
-#step2: 2_MonthlyAI ----
+```
+### Step 2: ```2_MonthlyAI```
 
-#Creating monthly dfs/per index
+This analysis works for resolution of 24 hours up to one month. We did it this way because the motifs try to find repetitions in the time-series and we expect some ecological patterns to be repeated across different time-scales. However we wanted to keep monthly data separated respecting the natural cycles that can occur with temperature, rainfall and many other changes. This was done so it would be -theoretically- easier to explain and understand patterns in a monthly resolution than across a year or years of recordings.
 
+The output here should be one df per month/index = 3 dfs per month.
+
+```
 new_dataframe <- NULL
 
 for (geo in geo_id) {
@@ -291,34 +338,36 @@ for (geo in geo_id) {
     
   }
 }
+```
 
+### Step 3: ```3_HIME```
 
-#step3: 3_HIME----
-
-
-library(rJava)
-
-
-
-# Set the directory containing the files
+Set the directory containing the files
+```
 input_directory <- getDataPath(folder, step2)
-# The directory to store the results
-
+```
+The directory to store the results
+```
 output_directory <- getDataPath(folder, step3)
+```
+Build the command
 
-#Folder with the HIME algorithm
+```
 HIME_command <-
   paste("'", input_directory, "/", "HIME_release.jar", "'", sep  = "")
+```
 
-#Command to set dir in PowerShell
+Command to set directory in PowerShell
+
+```
 command1 <- paste("cd ", input_directory, sep = "")
-
-
-# (Get-ChildItem is just like ls, or dir)
-
+```
+Listing files
+```
 files <- list_myfiles(step2, search_pattern = glob2rx("TS_*.txt"))
-
-# iterate through each file
+```
+Iterate through each file, prepare the command and execute in the for loop
+```
 for (file in files) {
   pws_input_file <-
     paste("'", input_directory, "/", basename(file), "'", sep = "")
@@ -343,9 +392,13 @@ for (file in files) {
   HIME(command3)
 }
 
-#step4: 4_ProcessingRes ----
-#After motif - processing .txt file from motif - changin encoding and getting rid of columns and info we don't need ----
+```
 
+#### Step4: ```4_ProcessingRes```
+
+After motif analysis, this will process .txt file from motif - changin encoding and getting rid of columns and info we don't need
+
+```
 files <- list_myfiles(step3, search_pattern = glob2rx("res*.txt"))
 
 for (file in files) {
@@ -360,13 +413,19 @@ for (file in files) {
                 row.names = F,
                 col.names = F)
 }
+```
 
-#step5: 5_CleaningUp ----
+### Step5: ```5_CleaningUp```
 
+This step will create the plots with the time series and motifs + clean them up removing the repetitions I mentioned before
+
+Firstly, naming the indices for the plots
+```
 indices <-
   c("AcousticComplexity", "EventsPerSecond", "TemporalEntropy")
-
-#Plotting TS for all indices
+```
+Plotting TS for all indices
+```
 for (geo in geo_id) {
   for (month in month_id) {
     
@@ -407,8 +466,7 @@ for (geo in geo_id) {
         "Figures",
         paste(geo, month, "indicespertime.jpg", sep = "_")
       ))
-    
-    
+        
     for (index in indices) {
       complete_inter <-
         select(complete_ts, all_of(index), 4:ncol(complete_ts)) %>%
@@ -570,11 +628,14 @@ for (geo in geo_id) {
   }
 }
 
+```
+### Step6: ```6_CompleteMotif```
+### Step7: ```7_CropSpectrogram```
+### Step8: ```8_FeatureExtraction```
 
-#step6: 6_CompleteMotif ----
-#step7: 7_CropSpectrogram ----
-#step8: 8_FeatureExtraction ----
+Steps 6, 7 and 8 go together and they create a file with all the motifs; crop the spectrograms so we can use them in the labelling process and then do the wavelet feature extraction that will be used in the random forest algorithm
 
+```
 for (geo in geo_id) {
   for (month in month_id) {
     
@@ -739,20 +800,5 @@ dir.create(getDataPath(folder, step7,unique(img_prep$site), unique(img_prep$poin
     
   }
 }
-
-#step9 <- "9_SpectroSelected" ----
-
-for (geo in geo_id) {
-  create_mydir(paste(step9, geo_id, sep = "/"))
-  samples <- read.csv(getDataPath(folder, step8, paste(geo, "_", "202008", "_LabelsSample.csv", sep = ""))) %>% 
-    rename(id = x) %>% 
-    as.vector()
-    spec_to_copy <- list.files(getDataPath(
-      folder,
-      step7, geo), pattern = samples, full.names = T)
-  file.copy(spec_to_copy, to = getDataPath(folder, step9, geo_id))
-    
-  }
-}
-
-
+```
+Finally now you can label the motifs to train and run the random forest algorithm here.
