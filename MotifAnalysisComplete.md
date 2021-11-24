@@ -1,6 +1,6 @@
 layout: page
 title: "Motif Analysis for Ecoacoustics"
-permalink: /https://ninascarpelli.github.io/motifanalysis/
+permalink: https://ninascarpelli.github.io/motifanalysis
 
 # Motif Analysis for Ecoacoustics
 
