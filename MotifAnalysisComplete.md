@@ -1,11 +1,16 @@
 layout: page
 title: "Motif Analysis for Ecoacoustics"
 permalink: https://ninascarpelli.github.io/MotifAnalysisComplete
+
 # Motif Analysis for Ecoacoustics
 
 The analysis developed here were motivated by the need of having a way to analyse multiple acoustic indices statistically. Currently, we have great visualisation tools but the step between those and the actual stats for ecological assessment was missing. The analysis showing here was accepted for publication and I will update the DOI and information on the paper as soon as I have them.
 
 This code runs the motif analysis up to wavelet transformation with images and a way to check files for labelling the motifs. It also gives the samples to be labelled (30% of dataset). The second step is the file named 2_.... (Haven't done this yet whoops) and it performs the random forest classification. The second step should be run after at least 10% of motifs is labelled - ideally 30%.
+
+If you're just after the script, you can find it [here](https://github.com/ninascarpelli/ninascarpelli.github.io/blob/a64347a74d83f3024efc019a2058b42346586737/1_MotifAnalysisComplete.R)
+
+If you want the step-by-step explanation, here it is:
 
 So, first here are the packages we will need for the analysis
 ```
@@ -802,8 +807,6 @@ dir.create(getDataPath(folder, step7,unique(img_prep$site), unique(img_prep$poin
   }
 }
 ```
-
-If you're after the script you can find it [here](https://github.com/ninascarpelli/ninascarpelli.github.io/blob/a64347a74d83f3024efc019a2058b42346586737/1_MotifAnalysisComplete.R)
 
 Finally now you can label the motifs to train and run the random forest algorithm here.
 
