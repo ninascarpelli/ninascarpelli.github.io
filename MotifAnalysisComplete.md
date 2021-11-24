@@ -395,7 +395,7 @@ for (file in files) {
 
 ```
 
-#### Step4: ```4_ProcessingRes```
+### Step4: ```4_ProcessingRes```
 
 After motif analysis, this will process .txt file from motif - changin encoding and getting rid of columns and info we don't need
 
