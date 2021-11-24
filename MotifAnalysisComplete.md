@@ -802,4 +802,8 @@ dir.create(getDataPath(folder, step7,unique(img_prep$site), unique(img_prep$poin
   }
 }
 ```
+
+If you're after the script you can find it [here](https://github.com/ninascarpelli/ninascarpelli.github.io/blob/a64347a74d83f3024efc019a2058b42346586737/1_MotifAnalysisComplete.R)
+
 Finally now you can label the motifs to train and run the random forest algorithm here.
+
