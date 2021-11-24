@@ -6,4 +6,5 @@ This repository is dedicated to share some codes (mostly in R) for analysis ecoa
 
 Hope this is useful
 
-[Who is this?](https://ninascarpelli.github.io/aboutme) | Codes
+[Who is this?](https://ninascarpelli.github.io/aboutme) | [Motif Analysis] (https://ninascarpelli.github.io/motifanalysis)
+
