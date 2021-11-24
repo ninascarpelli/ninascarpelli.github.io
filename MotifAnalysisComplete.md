@@ -145,7 +145,9 @@ iteration1 <- function(motif_results_df) {
   motif_results_df <- motif_results_df
 }
 ```
+
 6. Now this function actually cleans up the motifs. ```remove_repeated``` runs the iteration 3 times so it removes all the possible repetitions and overlaps and remove motifs assigned as repeated.
+
 ```
 remove_repeated <- function(motif_results_df) {
   result <- iteration1(motif_results_df) %>%
@@ -160,6 +162,7 @@ remove_repeated <- function(motif_results_df) {
   
 }
 ```
+
 ## Some more housekeeping before we start
 Firstly name the parent folder where you have your indices and where we will be creating new folders to save our results
 ```
