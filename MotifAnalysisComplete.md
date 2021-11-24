@@ -1,6 +1,7 @@
 layout: page
 title: "Motif Analysis for Ecoacoustics"
 permalink: https://ninascarpelli.github.io/MotifAnalysisComplete
+
 # Motif Analysis for Ecoacoustics
 
 The analysis developed here were motivated by the need of having a way to analyse multiple acoustic indices statistically. Currently, we have great visualisation tools but the step between those and the actual stats for ecological assessment was missing. The analysis showing here was accepted for publication and I will update the DOI and information on the paper as soon as I have them.
