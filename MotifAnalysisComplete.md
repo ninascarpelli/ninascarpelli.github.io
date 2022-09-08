@@ -1,8 +1,12 @@
 # Motif Analysis for Ecoacoustics
 
-The analysis developed here were motivated by the need of having a way to analyse multiple acoustic indices statistically. Currently, we have great visualisation tools but the step between those and the actual stats for ecological assessment was missing. The analysis showing here was accepted for publication and I will update the DOI and information on the paper as soon as I have them.
+The analysis developed here were motivated by the need of having a way to analyse multiple acoustic indices statistically. Currently, we have great visualisation tools but the step between those and the actual stats for ecological assessment was missing. The analysis showing here is published at [Frontiers in Ecology and Evolution](doi: 10.3389/fevo.2021.738537).
 
-This code runs the motif analysis up to wavelet transformation with images and a way to check files for labelling the motifs. It also gives the samples to be labelled (30% of dataset). The second step is the file named 2_.... (Haven't done this yet whoops) and it performs the random forest classification. The second step should be run after at least 10% of motifs is labelled - ideally 30%.
+This code runs the motif analysis up to wavelet transformation with images and a way to check files for labelling the motifs. It also gives the samples to be labelled (30% of dataset). The second step is the file named [2_ClassificationModelComplete.R](ninascarpelli.github.io/2_ClassificationModelComplete.R) and it is the script for performing the random forest classification. The second step should be run after at least 10% of motifs is labelled - ideally 30%.
+
+For this to run smoothly you'll need to have the Acoustic Indices results in a certain folder structure - this is to be organised and make sure results are not mixed up and that you know for sure where those fildes come from. First, I call site the general geographic area that I am sampling - a nation park, a property, etc. Location is the exact point of my sensor - or the sensor itself (1, 2, 3, River1, River2, paddock, forest, whatever you called your sensors). So, in the example here my Acoustic Indices are in a folder structure like this: "AIndices/64/253", being 64 the site "name" and 253 the recorder "name". So if you are sampling a National Park called "Pretty Forest" with 3 recorders named "1", "2", "3", you should have a folder structure like: "AIndices/PrettyForest/1", "AIndices/PrettyForest/2", "AIndices/PrettyForest/3". Now, "AIndices" need to be called that (or changed along the code) but everything else should be however you called your sites and locations. The other thing is that I use AnalysisPrograms.exe (AP) to calculate Acoustic Indices so the file structure is following the results from AP. If you use another program, I'm not sure how you would have to change the code for it. If you need help to adapt the code in any form contact me and I am happy to help :)
+
+The motif search algorithm is from [Gao & Lin](arXiv:1802.04883v1) and you'll need to download the files for running the algorithm from their repository and put it in the folder **2_MonthlyAI** that will be created automatically once you start running the code - the folder cretion step. In hindsight that was not a very smart decision because then each time you run the analysis you'll have to copy and paste the algorithm to another folder. I'll ~eventually~ (next time I run the analysis for real) change that and put the algorithm in its own folder and just call it but for the time being, it will stay like this - sorry.
 
 **If you're just after the script, you can find it [here](https://github.com/ninascarpelli/ninascarpelli.github.io/blob/a64347a74d83f3024efc019a2058b42346586737/1_MotifAnalysisComplete.R)**
 
@@ -29,7 +33,7 @@ rm(list = ls())
 
 and some functions to make life easier when tasks are repetitive
 
-1. First function is ```getDataPath``` that wasn't me who did it. This is so we can have the path to the parent folder that we will be working on without having to type the full path all the time. Best practice, according to Anthony (who is always trying to make me learn them) is to have absolute paths whenever possible. Also, create functions whenevee you have to copy and paste lines of code more than... 3 times?
+1. First function is ```getDataPath``` that wasn't me who did it. This is so we can have the path to the parent folder that we will be working on without having to type the full path all the time. Best practice, according to Anthony (who is always trying to make me learn them) is to have absolute paths whenever possible. Also, create functions whenever you have to copy and paste lines of code more than... 3 times?
 
 ```
 getDataPath <- function (...) {
@@ -175,7 +179,7 @@ The file structure is quite important bacause the way it is saved to avoid confu
 
 This analysis is made of 9 steps. Again, maybe that is not the best way of doing it, but this was the way I found best to have intermediate steps saved to be able to double check them. Also, the steps make sense in my head so it makes it straightforward to me. Maybe won't be the same for everyone so just change it however you think it is best for you.
 
-The steps are:
+The steps until the Random Forest classification are (then you'll need to go to file [2_ClassificationModelComplete.R](ninascarpelli.github.io/2_ClassificationModel.R):
 ```
 step1 <- "1_IndicesToTs"
 step2 <- "2_MonthlyAI"
@@ -417,9 +421,11 @@ for (file in files) {
 }
 ```
 
+
 ### Step5: ```5_CleaningUp```
 
 This step will create the plots with the time series and motifs + clean them up removing the repetitions I mentioned before
+In this step I create some plots and there's one of them that needs to change if you're not in Brisbane
 
 Firstly, naming the indices for the plots
 ```
@@ -462,13 +468,14 @@ for (geo in geo_id) {
       geom_line() +
       facet_wrap(. ~ index) +
       theme_classic() +
-      theme(axis.text.x = element_blank()) +
+      theme(axis.text.x = element_blank()) 
       ggsave(getDataPath(
         folder,
         "Figures",
         paste(geo, month, "indicespertime.jpg", sep = "_")
       ))
-        
+    
+    
     for (index in indices) {
       complete_inter <-
         select(complete_ts, all_of(index), 4:ncol(complete_ts)) %>%
@@ -618,7 +625,7 @@ for (geo in geo_id) {
           axis.text = element_blank(),
           axis.ticks = element_blank(),
           legend.position = "none"
-        ) +
+        ) 
         ggsave(getDataPath(
           folder,
           "Figures",
@@ -635,7 +642,7 @@ for (geo in geo_id) {
 ### Step7: ```7_CropSpectrogram```
 ### Step8: ```8_FeatureExtraction```
 
-Steps 6, 7 and 8 go together and they create a file with all the motifs; crop the spectrograms so we can use them in the labelling process and then do the wavelet feature extraction that will be used in the random forest algorithm
+Steps 6, 7 and 8 go together and they create a file with all the motifs; crop the spectrograms so we can use them in the labelling process and then do the wavelet feature extraction that will be used in the random forest algorithm. I've had to make some modifications on the spectrogram crop part (line 732), because the folders where my files were have a different name. Should be easy to adapt the code, though, you'll just need the pattern of the folders to look for. I'll try to improve that for the future, but for now I'll leave it as is (sorry, but again, I'm happy to help adapting the code as necessary)
 
 ```
 for (geo in geo_id) {
@@ -720,10 +727,11 @@ img_prep <- separate(motif_complete,
 dir.create(getDataPath(folder, step7, unique(img_prep$site)))
 dir.create(getDataPath(folder, step7,unique(img_prep$site), unique(img_prep$point)))
       
+
+paste(img_prep$FileName[row], "__", img_prep$index_name[row], ".png", sep = "")
       for (row in 1:nrow(img_prep)) {
         
-        #list.files(getDataPath(folder, img_prep$site[row], img_prep$point[row]), pattern = glob2rx(paste(img_prep$month[row], "*", img_prep$index_name[row], ".png", sep = "")), recursive = T, full.names = T) %>%
-       image_read(getDataPath(folder, img_prep$site[row], img_prep$point[row], paste(img_prep$FileName[row], "__", img_prep$index_name[row], ".png", sep = ""))) %>%
+       image_read(list.files(getDataPath(folder, img_prep$site[row], img_prep$point[row], paste(img_prep$date[row], "_AAO_-27.3888+152.8808", sep = ""), paste(img_prep$date[row], "T", img_prep$time[row], "_REC_-27.3888+152.8808.flac", sep = "")), pattern = "__ENT.png", full.names = T, recursive = T)) %>%
           image_crop(
             .,
             geometry_area(
@@ -782,8 +790,9 @@ dir.create(getDataPath(folder, step7,unique(img_prep$site), unique(img_prep$poin
     wtData$id <- rownames(ts_data)
     
     wtData <- mutate(wtData, class = NA) %>% 
-      mutate(., component = NA) %>% 
-      select(., id, class, component, everything())
+      mutate(., geo = NA) %>% 
+      mutate(., techno = NA)
+      select(., id, class, geo, techno, everything())
     
     
     samples <- sample(wtData$id, size = ceiling(nrow(wtData)*0.30), replace = F)
@@ -804,5 +813,26 @@ dir.create(getDataPath(folder, step7,unique(img_prep$site), unique(img_prep$poin
 }
 ```
 
-Finally now you can label the motifs to train and run the random forest algorithm here.
+step9: "9_SpectroSelected" 
 
+In this step I copy all the motifs selected to be labelled to another folder - this makes the labelling process easier
+```
+for (geo in geo_id) {
+  # create_mydir(paste(step9, geo_id, sep = "/"))
+  samples <- read.csv(getDataPath(folder, step8, paste(geo, "_", month_id, "_LabelsSample.csv", sep = ""))) %>% 
+    rename(id = x) %>% 
+    as.vector()
+   for (row in 1:nrow(samples)) {
+     
+    spec_to_copy <- list.files(getDataPath(
+      folder,
+      step7, site_id, point_id), pattern = samples$id[row], full.names = T, recursive = T)
+  file.copy(spec_to_copy, to = getDataPath(folder, step9, geo_id))
+    
+  }
+}
+```
+
+Finally now you can label the motifs to train and run the random forest algorithm [here](.
+
+Tips for labelling: use the cropped spectrograms as guides and you'll quicly pick up the patterns. There will be hard ones that you're not really sure, I usually put some question marks on them so I can double check the recordings after. So The way I label is: open the folder with the cropped spectrograms and order them by name - ascending. Open the file "...wavelet.csv" that should be in folder 8_FeatureExtraction (This is much easier if you have two screens, if not, open each one in half screen and leave them open at the same time - it is a nightmare to keep changing screens all the time). So you'll look at the spectrogram and identify what is there. Now, if you're new to this and it is your first time it will take a bit of time to get used to the patterns etc, but once you pick it up it should be pretty straightforward. My other tip is to label the motifs the most complete way possible. I know I said on the paper I used the main sound source, but sometimes (very often really) you'll have more than one sound source. So if there is insects and birds, I label "insectbird" in ORDER OF THE PREDOMINANT SOUND. After I finish labelling I check if I have a good amount of samples to keep more than one sound source to put it in the random forest. For example, "insectbird" is a pretty common tag, so I leave it as is. If I have 2 motifs with "insectbird" then I change them for insect (in this case I know that insect is the most predominant because it came first). This helps with standardising labels and also saves some time as I don't have to go back to the labels itself once I get to that stage. There will be a column saying geo and techno on the wavelet file too. In this columns I put if there is a presence of technophony or and geophony on that file too. As I am more interested in biophony, I label the motif eith the biphny but I also want to know if there is geophony and technophony in the file, so I include these labels on the side.
